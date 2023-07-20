@@ -32,7 +32,7 @@ The plugin should now be installed and enabled! You can start with a question li
 The `main.py` script serves the manifest at `localhost:5003/.well-known/ai-plugin.json`, which contains a link to the `openapi.yaml` file on localhost (also served by the `main.py` script). Any request sent to the API is first received by localhost (without any auth) and then redirected to Motion with the auth token by `main.py`. The response is then sent back to the plugin.
 
 ## Disclaimer
-The API response when asking for task list is very verbose and exceeds the model's context limit. This causes it to hallucinate tasks sometimes.
+The API response when asking for task list is very verbose and exceeds the model's context limit. This may cause it to hallucinate tasks.
 
 ## Feedback
 Feel free to raise an Issue or submit a Pull Request if you have something to contibute to the project!
