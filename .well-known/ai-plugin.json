@@ -1,0 +1,18 @@
+{
+    "schema_version": "v1",
+    "name_for_human": "Motion Tasks",
+    "name_for_model": "motion",
+    "description_for_human": "Manage your tasks list. You can add, remove and view your Motion tasks.",
+    "description_for_model": "Plugin for managing tasks in Motion. To view tasks, simply fetch tasks. Do not use any arguments. Do not use workspaces or project IDs in the requests. To edit tasks, first fetch them all and then select the TaskID based on the closest match.",
+    "auth": {
+      "type": "none"
+    },
+    "api": {
+      "type": "openapi",
+      "url": "http://localhost:5003/openapi.yaml"
+    },
+    "logo_url": "",
+    "contact_email": "",
+    "legal_info_url": ""
+  }
+  

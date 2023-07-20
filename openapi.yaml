@@ -1,0 +1,891 @@
+openapi: 3.0.0
+info:
+  title: Motion Plugin
+  description: A plugin that allows the user to create and manage a TODO list using ChatGPT. If you do not know the user's username, ask them first before making queries to the plugin. Otherwise, use the username "global".
+  version: 'v1'
+servers:
+  - url: http://localhost:5003
+paths:
+  /tasks/{taskId}:
+    patch:
+      operationId: TasksController_updateTask
+      summary: Update a Task
+      parameters:
+        - name: taskId
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskPatch'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+      tags:
+        - Tasks
+    get:
+      operationId: TasksController_getById
+      summary: Retrieve a Task
+      parameters:
+        - name: taskId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+      tags:
+        - Tasks
+    delete:
+      operationId: TasksController_deleteTask
+      summary: Delete a Task
+      parameters:
+        - name: taskId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - Tasks
+  /tasks:
+    post:
+      operationId: TasksController_post
+      summary: Create Task
+      description: >
+        ## Description Input
+
+
+        When passing in a task description, the input will be treated as [GitHub
+        Flavored
+        Markdown](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskPost'
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+      tags:
+        - Tasks
+    get:
+      operationId: TasksController_get
+      summary: List Tasks
+      description: |
+        <!-- theme: warning -->
+
+        > ### Note
+        >
+        > By default, all tasks that are completed are left out unless
+        > specifically filtered for via the status.
+      parameters:
+        - name: cursor
+          required: false
+          in: query
+          description: >-
+            Use if a previous request returned a cursor. Will page through
+            results
+          schema:
+            type: string
+        - name: label
+          required: false
+          in: query
+          description: Limit tasks returned by label on the task
+          schema:
+            type: string
+        - name: status
+          required: false
+          in: query
+          description: Limit tasks returned by the status on the task
+          schema:
+            type: string
+        - name: workspaceId
+          required: false
+          in: query
+          description: >-
+            The id of the workspace you want tasks from. If not provided, will
+            return tasks from all workspaces the user is a member of.
+          schema:
+            type: string
+        - name: projectId
+          required: false
+          in: query
+          description: Limit tasks returned to a given project
+          schema:
+            type: string
+        - name: name
+          required: false
+          in: query
+          description: >-
+            Limit tasks returned to those that contain this string. Case
+            in-sensitive
+          schema:
+            type: string
+        - name: assigneeId
+          required: false
+          in: query
+          description: Limit tasks returned to a specific assignee
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListTasks'
+      tags:
+        - Tasks
+  /recurring-tasks:
+    post:
+      operationId: RecurringTasksController_postRecurringTask
+      summary: Create a Recurring Task
+      description: >
+        ## Description Input
+
+
+        When passing in a task description, the input will be treated as [GitHub
+        Flavored
+        Markdown](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringTasksPost'
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringTask'
+      tags:
+        - Recurring Tasks
+    get:
+      operationId: RecurringTasksController_listRecurringTasks
+      summary: List Recurring Tasks
+      parameters:
+        - name: cursor
+          required: false
+          in: query
+          description: >-
+            Use if a previous request returned a cursor. Will page through
+            results
+          schema:
+            type: string
+        - name: workspaceId
+          required: true
+          in: query
+          description: The id of the workspace you want tasks from.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListRecurringTasks'
+      tags:
+        - Recurring Tasks
+  /recurring-tasks/{taskId}:
+    delete:
+      operationId: RecurringTasksController_deleteTask
+      summary: Delete a Recurring Task
+      parameters:
+        - name: taskId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - Recurring Tasks
+components:
+  schemas:
+    AutoScheduledInfo:
+      type: object
+      properties:
+        startDate:
+          type: string
+          default: '2023-06-28T06:00:00.000Z'
+          description: ISO 8601 Date which is trimmed to the start of the day passed
+          example: '2023-06-28'
+          format: date-time
+        deadlineType:
+          type: string
+          default: SOFT
+          enum:
+            - HARD
+            - SOFT
+            - NONE
+        schedule:
+          type: string
+          description: >-
+            Schedule the task must adhere to. Schedule MUST be 'Work Hours' if
+            scheduling the task for another user.
+          default: Work Hours
+    TaskPatch:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Name / title of the task
+        dueDate:
+          type: string
+          description: ISO 8601 Due date on the task. REQUIRED for scheduled tasks
+          example: '2023-06-28T10:11:14.321-06:00'
+          format: date-time
+        duration:
+          description: >-
+            A duration can be one of the following... "NONE", "REMINDER", or a
+            integer greater than 0
+          oneOf:
+            - enum:
+                - NONE
+                - REMINDER
+              type: string
+            - minimum: 1
+              type: number
+        status:
+          type: string
+          description: Defaults to workspace default status.
+        autoScheduled:
+          description: >-
+            If value is defined, the "status" field must be either
+            "Auto-Scheduled" or left blank
+          allOf:
+            - $ref: '#/components/schemas/AutoScheduledInfo'
+        projectId:
+          type: string
+        description:
+          type: string
+          description: Input as GitHub Flavored Markdown
+        priority:
+          type: string
+          enum:
+            - ASAP
+            - HIGH
+            - MEDIUM
+            - LOW
+        labels:
+          type: array
+          items:
+            type: string
+        assigneeId:
+          type: string
+          description: The user id the task should be assigned to
+    Status:
+      type: object
+      properties:
+        name:
+          type: string
+        isDefaultStatus:
+          type: boolean
+        isResolvedStatus:
+          type: boolean
+      required:
+        - name
+        - isDefaultStatus
+        - isResolvedStatus
+    Label:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        teamId:
+          type: string
+        statuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Status'
+        labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Label'
+        type:
+          type: string
+      required:
+        - id
+        - name
+        - statuses
+        - labels
+        - type
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+      required:
+        - id
+        - name
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        workspaceId:
+          type: string
+      required:
+        - id
+        - name
+    Task:
+      type: object
+      properties:
+        duration:
+          default: 30
+          description: >-
+            A duration can be one of the following... "NONE", "REMINDER", or a
+            integer greater than 0
+          oneOf:
+            - enum:
+                - NONE
+                - REMINDER
+              type: string
+            - minimum: 1
+              type: number
+        workspace:
+          $ref: '#/components/schemas/Workspace'
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        dueDate:
+          format: date-time
+          type: string
+        deadlineType:
+          type: string
+          default: SOFT
+          enum:
+            - HARD
+            - SOFT
+            - NONE
+        parentRecurringTaskId:
+          type: string
+        completed:
+          type: boolean
+        creator:
+          description: The user that created this task
+          allOf:
+            - $ref: '#/components/schemas/User'
+        project:
+          $ref: '#/components/schemas/Project'
+        status:
+          $ref: '#/components/schemas/Status'
+        priority:
+          type: string
+          enum:
+            - ASAP
+            - HIGH
+            - MEDIUM
+            - LOW
+        labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Label'
+        assignees:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        scheduledStart:
+          format: date-time
+          type: string
+          description: The time that motion has scheduled this task to start
+        scheduledEnd:
+          format: date-time
+          type: string
+          description: The time that motion has scheduled this task to end
+        schedulingIssue:
+          type: boolean
+          description: >-
+            Returns true if Motion was unable to schedule this task. Check
+            Motion directly to address
+      required:
+        - workspace
+        - id
+        - name
+        - dueDate
+        - deadlineType
+        - parentRecurringTaskId
+        - completed
+        - creator
+        - status
+        - priority
+        - labels
+        - assignees
+        - schedulingIssue
+    SubTask:
+      type: object
+      properties:
+        name:
+          type: string
+        completed:
+          type: boolean
+      required:
+        - name
+        - completed
+    TaskPost:
+      type: object
+      properties:
+        dueDate:
+          type: string
+          description: ISO 8601 Due date on the task. REQUIRED for scheduled tasks
+          example: '2023-06-28T10:11:14.320-06:00'
+          format: date-time
+        duration:
+          default: 30
+          description: >-
+            A duration can be one of the following... "NONE", "REMINDER", or a
+            integer greater than 0
+          oneOf:
+            - enum:
+                - NONE
+                - REMINDER
+              type: string
+            - minimum: 1
+              type: number
+        status:
+          type: string
+          description: Defaults to workspace default status.
+        autoScheduled:
+          description: >-
+            If value is defined, the "status" field must be either
+            "Auto-Scheduled" or left blank
+          allOf:
+            - $ref: '#/components/schemas/AutoScheduledInfo'
+        name:
+          type: string
+          description: Name / title of the task
+          minLength: 1
+        projectId:
+          type: string
+        workspaceId:
+          type: string
+        description:
+          type: string
+          description: Input as GitHub Flavored Markdown
+        priority:
+          type: string
+          default: MEDIUM
+          enum:
+            - ASAP
+            - HIGH
+            - MEDIUM
+            - LOW
+        labels:
+          type: array
+          items:
+            type: string
+        subTasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubTask'
+        assigneeId:
+          type: string
+          description: The user id the task should be assigned to
+      required:
+        - name
+        - workspaceId
+    MetaResult:
+      type: object
+      properties:
+        nextCursor:
+          type: string
+          description: >-
+            Returned if there are more entities to return. Pass back with the
+            cursor param set to continue paging.
+        pageSize:
+          type: number
+          description: Maximum number of entities delivered per page
+      required:
+        - pageSize
+    ListTasks:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        meta:
+          description: >-
+            Information about the result. Contains information necessary for
+            pagination.
+          allOf:
+            - $ref: '#/components/schemas/MetaResult'
+      required:
+        - tasks
+    MoveTask:
+      type: object
+      properties:
+        workspaceId:
+          type: string
+        assigneeId:
+          type: string
+          description: The user id the task should be assigned to
+      required:
+        - workspaceId
+    CommentPost:
+      type: object
+      properties:
+        taskId:
+          type: string
+        content:
+          type: string
+      required:
+        - taskId
+        - content
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+        taskId:
+          type: string
+        content:
+          type: string
+        creator:
+          description: The user that created this comment
+          allOf:
+            - $ref: '#/components/schemas/User'
+        createdAt:
+          format: date-time
+          type: string
+      required:
+        - id
+        - taskId
+        - content
+        - creator
+        - createdAt
+    ListComments:
+      type: object
+      properties:
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        meta:
+          description: >-
+            Information about the result. Contains information necessary for
+            pagination.
+          allOf:
+            - $ref: '#/components/schemas/MetaResult'
+      required:
+        - comments
+    RecurringTasksPost:
+      type: object
+      properties:
+        frequency:
+          type: string
+          description: >-
+            Frequency in which the task should be scheduled. Please carefully
+            read how to construct above.
+        deadlineType:
+          type: string
+          default: SOFT
+          enum:
+            - HARD
+            - SOFT
+        duration:
+          default: 30
+          description: >-
+            A duration can be one of the following... "REMINDER", or a integer
+            greater than 0
+          oneOf:
+            - enum:
+                - REMINDER
+              type: string
+            - minimum: 1
+              type: number
+        startingOn:
+          type: string
+          default: '2023-06-28T06:00:00.000Z'
+          description: ISO 8601 Date which is trimmed to the start of the day passed
+          example: '2023-06-28'
+          format: date-time
+        idealTime:
+          type: string
+        schedule:
+          type: string
+          description: Schedule the task must adhere to
+          default: Work Hours
+        name:
+          type: string
+          description: Name / title of the task
+          minLength: 1
+        workspaceId:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          default: MEDIUM
+          enum:
+            - HIGH
+            - MEDIUM
+        assigneeId:
+          type: string
+          description: The user id the task should be assigned too
+      required:
+        - frequency
+        - name
+        - workspaceId
+        - priority
+    RecurringTask:
+      type: object
+      properties:
+        workspace:
+          $ref: '#/components/schemas/Workspace'
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        creator:
+          description: The user that created this task
+          allOf:
+            - $ref: '#/components/schemas/User'
+        assignee:
+          $ref: '#/components/schemas/User'
+        project:
+          $ref: '#/components/schemas/Project'
+        status:
+          $ref: '#/components/schemas/Status'
+        priority:
+          type: string
+          enum:
+            - ASAP
+            - HIGH
+            - MEDIUM
+            - LOW
+        labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Label'
+      required:
+        - workspace
+        - id
+        - name
+        - creator
+        - assignee
+        - status
+        - priority
+        - labels
+    ListRecurringTasks:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecurringTask'
+        meta:
+          description: >-
+            Information about the result. Contains information necessary for
+            pagination.
+          allOf:
+            - $ref: '#/components/schemas/MetaResult'
+      required:
+        - tasks
+    ListProjects:
+      type: object
+      properties:
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        meta:
+          description: >-
+            Information about the result. Contains information necessary for
+            pagination.
+          allOf:
+            - $ref: '#/components/schemas/MetaResult'
+      required:
+        - projects
+    ProjectPost:
+      type: object
+      properties:
+        dueDate:
+          type: string
+          description: ISO 8601 Due date on the task
+          example: '2023-06-28T10:11:14.306-06:00'
+          format: date-time
+        name:
+          type: string
+          minLength: 1
+        workspaceId:
+          type: string
+        description:
+          type: string
+        labels:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        priority:
+          type: string
+          enum:
+            - ASAP
+            - HIGH
+            - MEDIUM
+            - LOW
+      required:
+        - name
+        - workspaceId
+    DailySchedule:
+      type: object
+      properties:
+        start:
+          type: string
+          description: 24 hour time format. HH:mm
+          example: '08:30'
+        end:
+          type: string
+          description: 24 hour time format. HH:mm
+          example: '18:00'
+      required:
+        - start
+        - end
+    ScheduleBreakout:
+      type: object
+      properties:
+        monday:
+          description: Array could be empty if there is no range for this day
+          type: array
+          items:
+            $ref: '#/components/schemas/DailySchedule'
+        tuesday:
+          description: Array could be empty if there is no range for this day
+          type: array
+          items:
+            $ref: '#/components/schemas/DailySchedule'
+        wednesday:
+          description: Array could be empty if there is no range for this day
+          type: array
+          items:
+            $ref: '#/components/schemas/DailySchedule'
+        thursday:
+          description: Array could be empty if there is no range for this day
+          type: array
+          items:
+            $ref: '#/components/schemas/DailySchedule'
+        friday:
+          description: Array could be empty if there is no range for this day
+          type: array
+          items:
+            $ref: '#/components/schemas/DailySchedule'
+        saturday:
+          description: Array could be empty if there is no range for this day
+          type: array
+          items:
+            $ref: '#/components/schemas/DailySchedule'
+        sunday:
+          description: Array could be empty if there is no range for this day
+          type: array
+          items:
+            $ref: '#/components/schemas/DailySchedule'
+      required:
+        - monday
+        - tuesday
+        - wednesday
+        - thursday
+        - friday
+        - saturday
+        - sunday
+    Schedule:
+      type: object
+      properties:
+        name:
+          type: string
+        isDefaultTimezone:
+          type: boolean
+        timezone:
+          type: string
+        schedule:
+          description: >-
+            Schedule broken out by day. It is possible for a day to have more
+            than one start/end time
+          allOf:
+            - $ref: '#/components/schemas/ScheduleBreakout'
+      required:
+        - name
+        - isDefaultTimezone
+        - timezone
+        - schedule
+    ListWorkspaces:
+      type: object
+      properties:
+        workspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/Workspace'
+        meta:
+          description: >-
+            Information about the result. Contains information necessary for
+            pagination.
+          allOf:
+            - $ref: '#/components/schemas/MetaResult'
+      required:
+        - workspaces
+    ListUsers:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        meta:
+          description: >-
+            Information about the result. Contains information necessary for
+            pagination.
+          allOf:
+            - $ref: '#/components/schemas/MetaResult'
+      required:
+        - users
